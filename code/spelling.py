@@ -1,4 +1,6 @@
 import numpy as np
+import random
+import code.pcfg as pcfg
 
 
 alphabet = 'abcdefghijklmnopqrstuvwxyz@'
@@ -106,50 +108,6 @@ REV = np.array([0, 0, 2, 1, 1, 0, 0, 0, 19, 0, 1, 14, 4, 25, 10, 3, 0, 27, 3, 5,
                 0]).reshape((26, 26))
 
 
-def unigram(train_sentence_list, add_smoothing=0):
-    occur = {'/////START/////': 0}
-    count = 0
-    for sentence in train_sentence_list:
-        sample = sentence.split(' ')
-        occur['/////START/////'] += 1
-        count += 1
-        for word in sample:
-            if word not in occur:
-                occur[word] = 0
-            occur[word] += 1
-            count += 1
-    return occur, count
-
-def bigram(label_set, train_sentence_list):
-    occur = [{} for _ in label_set] + [{}]
-    count = 0
-    for sentence in train_sentence_list:
-        sample = sentence.split(' ')
-        word = label_set.index(sample[0])
-        if word not in occur[-1]:
-            occur[-1][word] = 0
-        occur[-1][word] += 1
-        count += 1
-        for i in range(0, len(sample)-1):
-            id_word1 = label_set.index(sample[i])
-            word2 = sample[i+1]
-            if word2 not in occur[id_word1]:
-                occur[id_word1][word2] = 0
-            occur[id_word1][word2] += 1
-            count += 1
-    return occur, count
-
-
-def p_li(w1, w2, unigram, bigram, lam, n_unigram):
-    label_set = list(unigram.keys())
-    id_w1 = label_set.index(w1)
-    unigram_count = unigram[w1]
-    assert unigram_count > 0, 'Error, no occurence of {} was found'.format(w1)
-    bigram_count = 0 if w2 not in bigram[id_w1] else bigram[id_w1][w2]
-    p_mle = bigram_count / unigram_count
-    p_uni = unigram[w2] / n_unigram
-    return lam * p_uni + (1 - lam) * p_mle
-
 def candidates(word, vocab, max_dist=2):
     candidates = []
     probs = []
@@ -159,6 +117,7 @@ def candidates(word, vocab, max_dist=2):
             candidates.append(candidate)
             probs.append(prob)
     return candidates, probs
+
 
 def compute_chars(sentences):
     """
@@ -188,24 +147,6 @@ def compute_chars(sentences):
                         continue
     return uni_char * (N / n_words), bi_char * (N / n_words)
 
-uni_chars, bi_chars = compute_chars(sentences)
-# use add-1 smoothing
-DEL = DEL + 1
-ADD = DEL + 1
-SUB = DEL + 1
-uni_chars = uni_chars + 1
-bi_chars = bi_chars + 1
-
-dele = np.zeros_like(DEL)
-add = np.zeros_like(ADD)
-sub = np.zeros_like(SUB)
-for i in range(len(alphabet)):
-    for j in range(len(alphabet)-1):
-        dele[i, j] = DEL[i, j] / bi_chars[i, j]
-        add[i, j] = ADD[i, j] / uni_chars[i]
-for i in range(len(alphabet)-1):
-    for j in range(len(alphabet)-1):
-        sub[i, j] = SUB[i, j] / uni_chars[j]
 
 def levenshtein_dist(s1, s2, dele, add, sub):
     """
@@ -263,11 +204,104 @@ def levenshtein_dist(s1, s2, dele, add, sub):
                 else:
                     # substitution
                     m[i, j] = m[i-1, j-1]
-                    p[i, j] = p[i-1, j-1] * sub[alphabet.index(s1[i-1]), alphabet.index([s2[j-1]])]
+                    p[i, j] = p[i-1, j-1] * sub[alphabet.index(s1[i-1]), alphabet.index(s2[j-1])]
                     # recall that in sub[X, Y], Y is the correct word
 
     return m[len(s1), len(s2)], p[len(s1), len(s2)]
 
 
+def get_vocab(words):
+    vocab = []
+    for word_list in words:
+        for word in word_list:
+            vocab.append(word)
+    vocab.append('/////START/////')
+    return vocab
+
+
+def unigram(train_sentence_list):
+    occur = {'/////START/////': 0}
+    count = 0
+    for sentence in train_sentence_list:
+        sample = sentence.split(' ')
+        occur['/////START/////'] += 1
+        count += 1
+        for word in sample:
+            if word not in occur:
+                occur[word] = 0
+            occur[word] += 1
+            count += 1
+    return occur, count
+
+
+def bigram(label_set, train_sentence_list):
+    occur = [{} for _ in label_set] + [{}]
+    count = 0
+    for sentence in train_sentence_list:
+        sample = sentence.split(' ')
+        word = label_set.index(sample[0])
+        if word not in occur[-1]:
+            occur[-1][word] = 0
+        occur[-1][word] += 1
+        count += 1
+        for i in range(0, len(sample)-1):
+            id_word1 = label_set.index(sample[i])
+            word2 = sample[i+1]
+            if word2 not in occur[id_word1]:
+                occur[id_word1][word2] = 0
+            occur[id_word1][word2] += 1
+            count += 1
+    return occur, count
+
+
+def p_li(w1, w2, unigram, bigram, lam, n_unigram):
+    label_set = list(unigram.keys())
+    id_w1 = label_set.index(w1)
+    unigram_count = unigram[w1]
+    assert unigram_count > 0, 'Error, no occurence of {} was found'.format(w1)
+    bigram_count = 0 if w2 not in bigram[id_w1] else bigram[id_w1][w2]
+    p_mle = bigram_count / unigram_count
+    p_uni = unigram[w2] / n_unigram
+    return lam * p_uni + (1 - lam) * p_mle
+
+
 if __name__ == '__main__':
+    # load sequoia dataset
+    dataset = []
+    with open('sequoia-corpus+fct.mrg_strict', 'r') as f:
+        for line in f:
+            dataset.append(line[:-1])
+    n_samples = len(dataset)
+    random.shuffle(dataset)
+    train_set = dataset[:int(0.8 * n_samples)]
+    valid_set = dataset[int(0.8 * n_samples): int(0.9 * n_samples)]
+    test_set = dataset[int(0.9 * n_samples):]
+
+    heads, rules, freqs_pos, words, freqs_word, sentences = pcfg.create_pcfg(train_set)
+
+    ######################################################################################
+
+    uni_chars, bi_chars = compute_chars(sentences)
+    # use add-1 smoothing
+    DEL = DEL + 1
+    ADD = DEL + 1
+    SUB = DEL + 1
+    uni_chars = uni_chars + 1
+    bi_chars = bi_chars + 1
+
+    dele = np.zeros_like(DEL)
+    add = np.zeros_like(ADD)
+    sub = np.zeros_like(SUB)
+    for i in range(len(alphabet)):
+        for j in range(len(alphabet) - 1):
+            dele[i, j] = DEL[i, j] / bi_chars[i, j]
+            add[i, j] = ADD[i, j] / uni_chars[i]
+    for i in range(len(alphabet) - 1):
+        for j in range(len(alphabet) - 1):
+            sub[i, j] = SUB[i, j] / uni_chars[j]
+
     print(levenshtein_dist('actress', 'across', dele, add, sub))
+
+    vocab = get_vocab(words)
+    unigram, n_unigram = unigram(sentences)
+    bigram, n_bigram = bigram(vocab, sentences)

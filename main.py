@@ -1,7 +1,10 @@
 import numpy as np
 import os
 import random
+
 import code.pcfg as pcfg
+import code.oov as oov
+import code.spelling as spelling
 
 
 if __name__ == '__main__':
