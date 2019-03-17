@@ -124,3 +124,44 @@ def create_pcfg(train_set):
             words[i].append(word)
             freqs_word[i].append(lexicon[pos][word] / s)
     return heads, rules, freqs_pos, words, freqs_word, sentences
+
+
+def chomsky_normal_form(heads, rules, probs):
+    heads_ind = [0 for _ in range(len(heads))]
+    rule_list = []
+    for i in range(len(heads)):
+        head, rules_h, probs_h = heads[i], rules[i], probs[i]
+        for j in range(len(rules_h)):
+            rule, prob = rules_h[j], probs_h[j]
+            # START & TERM conditions should already be respected
+            # BIN
+            if len(rule) > 2:
+                new_head = head
+                for k in range(len(rule)-1):
+                    v1 = rule[k]
+                    new_prob = prob if k == 0 else 1
+                    if k == len(rule)-1:
+                        v2 = rule[k+1]
+                    else:
+                        ind = heads.index(rule[k+1])
+                        v2 = rule[k+1]+'_{}'.format(heads_ind[ind])
+                        heads_ind[ind] += 1
+                    rule_list.append((new_head, [v1, v2], new_prob))
+                    new_head = v2
+            else:
+                rule_list.append((head, rule, prob))
+    new_heads = []
+    new_rules = []
+    new_probs = []
+    for i in range(len(rule_list)):
+        head, rule, prob = rule_list[i]
+        if head not in new_heads:
+            new_heads.append(head)
+            new_rules.append([])
+            new_probs.append([])
+            head_ind = len(new_heads)-1
+        else:
+            head_ind = new_heads.index(head)
+        new_rules[head_ind].append(rule)
+        new_probs[head_ind].append(prob)
+    return new_heads, new_rules, new_probs

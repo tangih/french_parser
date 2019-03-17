@@ -2,9 +2,9 @@ import numpy as np
 import os
 import random
 
-import code.pcfg as pcfg
-import code.oov as oov
-import code.spelling as spelling
+from code import pcfg
+from code import oov
+from code import spelling
 
 
 if __name__ == '__main__':
@@ -20,8 +20,4 @@ if __name__ == '__main__':
     test_set = dataset[int(0.9*n_samples):]
 
     heads, rules, freqs_pos, words, freqs_word, sentences = pcfg.create_pcfg(train_set)
-    n_h = 4
-    # print(heads[n_h])
-    # print(list(zip(freqs[n_h], rules[n_h])))
-    # print(sum(freqs[n_h]))
-    # print(list(zip(words[n_h], freqs_word[n_h])))
+    heads, rules, probs = pcfg.chomsky_normal_form(heads, rules, freqs_pos)
