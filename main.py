@@ -5,6 +5,7 @@ import random
 from code import pcfg
 from code import oov
 from code import spelling
+from code import cyk
 
 
 if __name__ == '__main__':
@@ -21,10 +22,7 @@ if __name__ == '__main__':
 
     heads, rules, freqs_pos, words, freqs_word, sentences = pcfg.create_pcfg(train_set)
     count = 0
-    for i in range(len(heads)):
-        print(len(rules[i]))
-        count += len(rules[i])
-    print(count)
-    # heads, rules, probs = pcfg.chomsky_normal_form(heads, rules, freqs_pos)
-    # for head in heads:
-    #     print(head)
+
+    heads_ch, rules_ch, probs_ch = pcfg.chomsky_normal_form(heads, rules, freqs_pos)
+    print(train_set[0])
+    

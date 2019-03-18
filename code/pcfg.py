@@ -150,14 +150,42 @@ def chomsky_normal_form(heads, rules, probs):
                     new_head = v2
             else:
                 rule_list.append((head, rule, prob))
-            # UNIT
-            # if len(rule) == 1 and rule[0].upper() == rule[0]:
+    # UNIT
+    unit_rules_id = []
+    for i in range(len(rule_list)):
+        head, rule, prob = rule_list[i]
+        symbol = rule[0]
+        if len(rule) == 1 and symbol.upper() == symbol:
+            # symbol.upper() == symbol[0] is True iff the symbol is non-terminal
+            unit_rules_id.append(i)
+    while not len(unit_rules_id) == 0:
+        i = unit_rules_id.pop()
+        head, rule, prob = rule_list[i]
+        symbol = rule[0]
+        rule_list[i] = None
 
+        for j in range(len(rule_list)):
+            if rule_list[i] is None:
+                continue
+            head_, rule_, prob_ = rule_list[i]
+            if head_ == symbol:
+                rule_list.append((head, rule_, prob * prob_))
+                if len(rule_) == 1 and rule_[0].upper() == rule_[0]:
+                    # symbol.upper() == symbol[0] is True iff the symbol is non-terminal
+                    unit_rules_id.append(len(rule_list)-1)
+
+    # dismiss all entries that have been set to None
+    new_rule_list = []
+    for i in range(len(rule_list)):
+        if rule_list[i] is not None:
+            new_rule_list.append(rule_list[i])
+
+    # reformat the PCFG
     new_heads = []
     new_rules = []
     new_probs = []
-    for i in range(len(rule_list)):
-        head, rule, prob = rule_list[i]
+    for i in range(len(new_rule_list)):
+        head, rule, prob = new_rule_list[i]
         if head not in new_heads:
             new_heads.append(head)
             new_rules.append([])
@@ -167,4 +195,5 @@ def chomsky_normal_form(heads, rules, probs):
             head_ind = new_heads.index(head)
         new_rules[head_ind].append(rule)
         new_probs[head_ind].append(prob)
+
     return new_heads, new_rules, new_probs

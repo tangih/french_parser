@@ -5,7 +5,7 @@ from itertools import islice
 import re
 import numpy as np
 
-import spelling
+from . import spelling
 
 
 def case_normalizer(word, dictionary):

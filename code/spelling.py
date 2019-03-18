@@ -1,6 +1,6 @@
 import numpy as np
 import random
-import pcfg
+from . import pcfg
 
 
 alphabet = 'abcdefghijklmnopqrstuvwxyz@'
