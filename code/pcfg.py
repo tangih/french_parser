@@ -150,6 +150,9 @@ def chomsky_normal_form(heads, rules, probs):
                     new_head = v2
             else:
                 rule_list.append((head, rule, prob))
+            # UNIT
+            # if len(rule) == 1 and rule[0].upper() == rule[0]:
+
     new_heads = []
     new_rules = []
     new_probs = []

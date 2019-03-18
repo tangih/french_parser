@@ -20,4 +20,11 @@ if __name__ == '__main__':
     test_set = dataset[int(0.9*n_samples):]
 
     heads, rules, freqs_pos, words, freqs_word, sentences = pcfg.create_pcfg(train_set)
-    heads, rules, probs = pcfg.chomsky_normal_form(heads, rules, freqs_pos)
+    count = 0
+    for i in range(len(heads)):
+        print(len(rules[i]))
+        count += len(rules[i])
+    print(count)
+    # heads, rules, probs = pcfg.chomsky_normal_form(heads, rules, freqs_pos)
+    # for head in heads:
+    #     print(head)
