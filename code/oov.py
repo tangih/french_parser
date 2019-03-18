@@ -5,36 +5,7 @@ from itertools import islice
 import re
 import numpy as np
 
-from . import spelling
-
-def tmp():
-    with open('../polyglot-fr.pkl', 'rb') as f:
-        u = pickle._Unpickler(f)
-        u.encoding = 'latin1'
-        words, embeddings = u.load()
-        print(words, embeddings)
-    # words, embeddings = pickle.load(open('../polyglot-fr.pkl', 'rb'))
-    # words, embeddings = pickle.load(open('/home/polyglot/en/words_embeddings_32.pkl', 'rb'))
-    print("Emebddings shape is {}".format(embeddings.shape))
-
-
-    # Special tokens
-    Token_ID = {"<UNK>": 0, "<S>": 1, "</S>":2, "<PAD>": 3}
-    # ID_Token = {v:k for k,v in Token_ID.iteritems()}
-
-    # Map words to indices and vice versa
-    word_id = {w:i for (i, w) in enumerate(words)}
-    id_word = dict(enumerate(words))
-
-    # Noramlize digits by replacing them with #
-    DIGITS = re.compile("[0-9]", re.UNICODE)
-
-    # Number of neighbors to return.
-    k = 5
-
-    knn("Jordan", embeddings, word_id, id_word)
-    knn("1986", embeddings, word_id, id_word)
-    knn("JAPAN", embeddings, word_id, id_word)
+import spelling
 
 
 def case_normalizer(word, dictionary):
@@ -56,6 +27,8 @@ def case_normalizer(word, dictionary):
 
 def normalize(word, word_id):
     """ Find the closest alternative in case the word is OOV."""
+    DIGITS = re.compile("[0-9]", re.UNICODE)
+
     if not word in word_id:
         word = DIGITS.sub("#", word)
     if not word in word_id:
@@ -66,29 +39,42 @@ def normalize(word, word_id):
     return word
 
 
-def l2_nearest(embeddings, word_index, k):
-    """Sorts words according to their Euclidean distance.
-       To use cosine distance, embeddings has to be normalized so that their l2 norm is 1."""
+def compute_embeddings(vocab):
+    """
+    compute embeddings for our SEQUOIA lexicon
+    """
+    with open('../polyglot-fr.pkl', 'rb') as f:
+        u = pickle._Unpickler(f)
+        u.encoding = 'latin1'
+        words, embeddings = u.load()
+        print(words, embeddings)
+    # words, embeddings = pickle.load(open('../polyglot-fr.pkl', 'rb'))
+    # words, embeddings = pickle.load(open('/home/polyglot/en/words_embeddings_32.pkl', 'rb'))
+    print("Emebddings shape is {}".format(embeddings.shape))
 
-    e = embeddings[word_index]
-    distances = (((embeddings - e) ** 2).sum(axis=1) ** 0.5)
+    # Map words to indices and vice versa
+    word_id = {w: i for (i, w) in enumerate(words)}
+    id_word = dict(enumerate(words))
+
+    voc_embed = []
+    for word in vocab:
+        norm_word = normalize(word, word_id)
+        voc_embed.append(embeddings[word_id[norm_word]])
+    return voc_embed, (words, embeddings)
+
+
+def knn(word, embeddings, word_id, voc_embed, k=5):
+    norm_word = normalize(word, word_id)
+    target = embeddings[word_id[norm_word]]
+    distances = (((voc_embed - target) ** 2).sum(axis=1) ** 0.5)
     sorted_distances = sorted(enumerate(distances), key=itemgetter(1))
-    return zip(*sorted_distances[:k])
+    indices, distances = zip(*sorted_distances[:k])
+    return indices, distances
 
-
-def knn(word, embeddings, word_id, id_word):
-    word = normalize(word, word_id)
-    if not word:
-        print("OOV word")
-        return
-    word_index = word_id[word]
-    indices, distances = l2_nearest(embeddings, word_index, k)
-    neighbors = [id_word[idx] for idx in indices]
-    for i, (word, distance) in enumerate(zip(neighbors, distances)):
-        print(i, '\t', word, '\t\t', distance)
 
 def get_oov_params():
     pass
+
 
 def oov(original, predecessor, oov_params):
     """
