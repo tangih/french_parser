@@ -15,6 +15,7 @@ if __name__ == '__main__':
         for line in f:
             dataset.append(line[:-1])
     n_samples = len(dataset)
+    random.seed(0)
     random.shuffle(dataset)
     train_set = dataset[:int(0.8*n_samples)]
     valid_set = dataset[int(0.8*n_samples): int(0.9*n_samples)]
@@ -23,6 +24,6 @@ if __name__ == '__main__':
     heads, rules, freqs_pos, words, freqs_word, sentences = pcfg.create_pcfg(train_set)
     count = 0
 
-    heads_ch, rules_ch, probs_ch = pcfg.chomsky_normal_form(heads, rules, freqs_pos)
+    new_rule_list, unit_rules, new_heads = pcfg.chomsky_normal_form(heads, rules, freqs_pos)
     # print(probs_ch)
-    cyk.cyk(['ponct', 'npp'], (heads_ch, rules_ch, probs_ch))
+    cyk.cyk(['ponct', 'npp'], new_rule_list, new_heads)

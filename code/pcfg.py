@@ -165,76 +165,48 @@ def chomsky_normal_form(heads, rules, probs):
                     new_head = v2
             else:
                 rule_list.append((head, rule, prob))
+
     # UNIT
     unit_rules_id = []
-    rule_str_list = []
+    # create a stack of unit rules id
     for i in range(len(rule_list)):
         head, rule, prob = rule_list[i]
-        rule_str_list.append(head+'#'+'#'.join(rule))
-        # if head[:4] == 'SENT':
-        #     print(head, rule)
-        symbol = rule[0]
-        if len(rule) == 1 and symbol.upper() == symbol:
-            # symbol.upper() == symbol[0] is True iff the symbol is non-terminal
+        if len(rule) == 1 and not (rule[0].upper() == rule[0]):
             unit_rules_id.append(i)
+
     removed = []
+    unit_rules = []
     while not len(unit_rules_id) == 0:
         i = unit_rules_id.pop()
         head, rule, prob = rule_list[i]
-        symbol = rule[0]
-        removed.append('{} -> {}'.format(head, symbol))
         rule_list[i] = None
-        rule_str_list[i] = None
+        removed.append((head, rule))
+        # add the removed unit rule to the list of unit rules and keep its index
+        unit_rules.append((head, rule, prob))
+        id_unit = len(unit_rules)-1
+        new_head = head+'#{}'.format(id_unit)
         new_rules = []
-        new_rules_str = []
         for j in range(len(rule_list)):
             if rule_list[j] is None:
                 continue
             head_, rule_, prob_ = rule_list[j]
-            if head_ == symbol:
-                if not (len(rule_) == 1 and rule_[0].upper() == rule_[0] and '{} -> {}'.format(head, rule_[0]) in removed):
-                    # add the new rule only if this is not a unit rule that has already been removed
-                    rule_str = head+'#'+'#'.join(rule_)
-                    if rule_str in rule_str_list:
-                        ind = rule_str_list.index(rule_str)
-                        if rule_list[ind] is None:
-                            break
-                        _, _, prev_prob = rule_list[ind]
-                        rule_list[ind] = (head_, rule_, prev_prob + prob*prob_)
+            if head_ == rule[0]:
+                if len(rule_) == 1:
+                    if (head, rule_) in removed:
+                        continue
                     else:
-                        new_rules.append((head, rule_, prob * prob_))
-                        new_rules_str.append(rule_str)
+                        unit_rules_id.append(len(rule_list) + len(new_rules))
+                new_rules.append((new_head, rule_, prob * prob_))
+        rule_list += new_rules
 
-                        if len(rule_) == 1 and rule_[0].upper() == rule_[0]:
-                            # if we just added another non terminal root, need to remove it in the future
-                            unit_rules_id.append(len(rule_list)+len(new_rules)-1)
-        rule_list = rule_list + new_rules
-        rule_str_list = rule_str_list + new_rules_str
-
-    # dismiss all entries that have been set to None
+    # remove from the rule list all the rules that have been set to None
+    new_heads = []
     new_rule_list = []
     for i in range(len(rule_list)):
         if rule_list[i] is not None:
             new_rule_list.append(rule_list[i])
-    # reformat the PCFG
-    new_heads = []
-    new_rules = []
-    new_probs = []
-    for i in range(len(new_rule_list)):
-        head, rule, prob = new_rule_list[i]
-        if head not in new_heads:
-            new_heads.append(head)
-            new_rules.append([])
-            new_probs.append([])
-            head_ind = len(new_heads)-1
-        else:
-            head_ind = new_heads.index(head)
-        new_rules[head_ind].append(rule)
-        new_probs[head_ind].append(prob)
+            head, _, _ = rule_list[i]
+            if head not in new_heads:
+                new_heads.append(head)
 
-    # for i in range(len(new_rule_list)):
-    #     head, rule, prob = new_rule_list[i]
-    #     if head == 'NP' and len(rule) == 1:
-    #         print(new_rule_list[i])
-
-    return new_heads, new_rules, new_probs
+    return new_rule_list, unit_rules, new_heads
