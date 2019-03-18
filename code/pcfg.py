@@ -126,15 +126,30 @@ def create_pcfg(train_set):
     return heads, rules, freqs_pos, words, freqs_word, sentences
 
 
+def grammar2rulelist(grammar):
+    heads, rules, probs = grammar
+    rule_list = []
+    for i in range(len(heads)):
+        head = heads[i]
+        rules_h, probs_h = rules[i], probs[i]
+        for j in range(len(rules_h)):
+            rule, prob = rules_h[j], probs_h[j]
+            rule_list.append((head, rule, prob))
+
+    return rule_list
+
+
 def chomsky_normal_form(heads, rules, probs):
     heads_ind = [0 for _ in range(len(heads))]
     rule_list = []
+
+    # START & TERM conditions should already be respected
+    # BIN
     for i in range(len(heads)):
         head, rules_h, probs_h = heads[i], rules[i], probs[i]
         for j in range(len(rules_h)):
             rule, prob = rules_h[j], probs_h[j]
-            # START & TERM conditions should already be respected
-            # BIN
+
             if len(rule) > 2:
                 new_head = head
                 for k in range(len(rule)-1):
@@ -150,6 +165,7 @@ def chomsky_normal_form(heads, rules, probs):
                     new_head = v2
             else:
                 rule_list.append((head, rule, prob))
+
     # UNIT
     unit_rules_id = []
     for i in range(len(rule_list)):
@@ -158,28 +174,35 @@ def chomsky_normal_form(heads, rules, probs):
         if len(rule) == 1 and symbol.upper() == symbol:
             # symbol.upper() == symbol[0] is True iff the symbol is non-terminal
             unit_rules_id.append(i)
+    removed = []
     while not len(unit_rules_id) == 0:
         i = unit_rules_id.pop()
         head, rule, prob = rule_list[i]
         symbol = rule[0]
+        removed.append('{} -> {}'.format(head, symbol))
         rule_list[i] = None
-
+        new_rules = []
         for j in range(len(rule_list)):
-            if rule_list[i] is None:
+            if rule_list[j] is None:
                 continue
-            head_, rule_, prob_ = rule_list[i]
+            head_, rule_, prob_ = rule_list[j]
             if head_ == symbol:
-                rule_list.append((head, rule_, prob * prob_))
-                if len(rule_) == 1 and rule_[0].upper() == rule_[0]:
-                    # symbol.upper() == symbol[0] is True iff the symbol is non-terminal
-                    unit_rules_id.append(len(rule_list)-1)
+                if not (len(rule_) == 1 and rule_[0].upper() == rule_[0] and '{} -> {}'.format(head, rule_[0]) in removed):
+                    # add the new rule only if this is not a unit rule that has already been removed
+                    new_rules.append((head, rule_, prob * prob_))
+
+                    if len(rule_) == 1 and rule_[0].upper() == rule_[0]:
+                        # if we just added another non terminal root, need to remove it in the future
+                        unit_rules_id.append(len(rule_list)+len(new_rules)-1)
+        rule_list = rule_list + new_rules
 
     # dismiss all entries that have been set to None
     new_rule_list = []
     for i in range(len(rule_list)):
         if rule_list[i] is not None:
             new_rule_list.append(rule_list[i])
-
+            # if rule_list[i][0] == 'NP':
+            #     print(rule_list[i])
     # reformat the PCFG
     new_heads = []
     new_rules = []

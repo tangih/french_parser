@@ -6,7 +6,7 @@ def cyk(sentence_pos, grammar):
     head_index = {head: index for index, head in enumerate(heads)}
     n = len(sentence_pos)
     r = len(heads)
-    P = np.array((n, n, r), dtype=np.float)
+    P = np.zeros((n, n, r), dtype=np.float)
     back = [[[(-1, -1, -1) for _ in range(r)] for _ in range(n)] for _ in range(n)]
     rule_list = []
     for i in range(len(heads)):
@@ -20,6 +20,7 @@ def cyk(sentence_pos, grammar):
             head, rule, prob = tup
             if len(rule) == 1 and rule[0] == sentence_pos[s]:
                 v = head_index[head]
+                print(head, prob)
                 P[0, s, v] = prob
     for l in range(1, n):
         for s in range(n-l+1):
@@ -33,5 +34,7 @@ def cyk(sentence_pos, grammar):
                     c = head_index[rule[1]]
                     p_s = prob * P[p, s, b] * P[l-p, s+p, c]
                     if P[p, s, b] > 0 and P[l - p, s + p, c] > 0 and P[l, s, a] < p_s:
+                        print('#############################################')
                         P[l, s, a] = p_s
                         back[l][s][a] = (p, b, c)
+    print(back)

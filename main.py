@@ -24,5 +24,5 @@ if __name__ == '__main__':
     count = 0
 
     heads_ch, rules_ch, probs_ch = pcfg.chomsky_normal_form(heads, rules, freqs_pos)
-    print(train_set[0])
-    
+    # print(probs_ch)
+    cyk.cyk(['ponct', 'npp'], (heads_ch, rules_ch, probs_ch))
