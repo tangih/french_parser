@@ -152,24 +152,27 @@ def chomsky_normal_form(heads, rules, probs):
 
             if len(rule) > 2:
                 new_head = head
+                ind = heads.index(head)
                 for k in range(len(rule)-1):
                     v1 = rule[k]
                     new_prob = prob if k == 0 else 1
-                    if k == len(rule)-1:
+                    if k == len(rule)-2:
                         v2 = rule[k+1]
                     else:
-                        ind = heads.index(rule[k+1])
-                        v2 = rule[k+1]+'_{}'.format(heads_ind[ind])
+                        v2 = head+'_{}'.format(heads_ind[ind])
                         heads_ind[ind] += 1
                     rule_list.append((new_head, [v1, v2], new_prob))
                     new_head = v2
             else:
                 rule_list.append((head, rule, prob))
-
     # UNIT
     unit_rules_id = []
+    rule_str_list = []
     for i in range(len(rule_list)):
         head, rule, prob = rule_list[i]
+        rule_str_list.append(head+'#'+'#'.join(rule))
+        # if head[:4] == 'SENT':
+        #     print(head, rule)
         symbol = rule[0]
         if len(rule) == 1 and symbol.upper() == symbol:
             # symbol.upper() == symbol[0] is True iff the symbol is non-terminal
@@ -181,7 +184,9 @@ def chomsky_normal_form(heads, rules, probs):
         symbol = rule[0]
         removed.append('{} -> {}'.format(head, symbol))
         rule_list[i] = None
+        rule_str_list[i] = None
         new_rules = []
+        new_rules_str = []
         for j in range(len(rule_list)):
             if rule_list[j] is None:
                 continue
@@ -189,20 +194,28 @@ def chomsky_normal_form(heads, rules, probs):
             if head_ == symbol:
                 if not (len(rule_) == 1 and rule_[0].upper() == rule_[0] and '{} -> {}'.format(head, rule_[0]) in removed):
                     # add the new rule only if this is not a unit rule that has already been removed
-                    new_rules.append((head, rule_, prob * prob_))
+                    rule_str = head+'#'+'#'.join(rule_)
+                    if rule_str in rule_str_list:
+                        ind = rule_str_list.index(rule_str)
+                        if rule_list[ind] is None:
+                            break
+                        _, _, prev_prob = rule_list[ind]
+                        rule_list[ind] = (head_, rule_, prev_prob + prob*prob_)
+                    else:
+                        new_rules.append((head, rule_, prob * prob_))
+                        new_rules_str.append(rule_str)
 
-                    if len(rule_) == 1 and rule_[0].upper() == rule_[0]:
-                        # if we just added another non terminal root, need to remove it in the future
-                        unit_rules_id.append(len(rule_list)+len(new_rules)-1)
+                        if len(rule_) == 1 and rule_[0].upper() == rule_[0]:
+                            # if we just added another non terminal root, need to remove it in the future
+                            unit_rules_id.append(len(rule_list)+len(new_rules)-1)
         rule_list = rule_list + new_rules
+        rule_str_list = rule_str_list + new_rules_str
 
     # dismiss all entries that have been set to None
     new_rule_list = []
     for i in range(len(rule_list)):
         if rule_list[i] is not None:
             new_rule_list.append(rule_list[i])
-            # if rule_list[i][0] == 'NP':
-            #     print(rule_list[i])
     # reformat the PCFG
     new_heads = []
     new_rules = []
@@ -218,5 +231,10 @@ def chomsky_normal_form(heads, rules, probs):
             head_ind = new_heads.index(head)
         new_rules[head_ind].append(rule)
         new_probs[head_ind].append(prob)
+
+    # for i in range(len(new_rule_list)):
+    #     head, rule, prob = new_rule_list[i]
+    #     if head == 'NP' and len(rule) == 1:
+    #         print(new_rule_list[i])
 
     return new_heads, new_rules, new_probs
