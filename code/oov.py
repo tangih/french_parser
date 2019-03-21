@@ -1,9 +1,12 @@
 import random
 import pickle
-from operator import itemgetter
-from itertools import islice
+import unidecode
 import re
 import numpy as np
+
+from operator import itemgetter
+from itertools import islice
+
 
 from . import spelling
 
@@ -72,8 +75,11 @@ def knn(word, embeddings, word_id, voc_embed, k=5):
     return indices, distances
 
 
-def get_oov_params():
-    pass
+def get_oov_params(sentences):
+    uni = spelling.unigram(sentences)
+    bi = spelling.bigram(label_set, sentences)
+
+
 
 
 def oov(original, predecessor, oov_params):
@@ -82,12 +88,16 @@ def oov(original, predecessor, oov_params):
     """
     unigram, bigram, n_unigram, vocab, dicts = oov_params
     max_dist_levenshtein = 2
-    # cand, xl_probs = spelling.candidates(original, vocab, dicts, max_dist=max_dist_levenshtein)
-    # if len(cand) == 0:
-    #
-    # scores = spelling.sorted_candidates(cand, predecessor, xl_probs,
-    #                                                  unigram, bigram, n_unigram)
-    # if
+
+    unaccented_word = unidecode.unidecode(original)
+    unaccented_pred = unidecode.unidecode(predecessor)
+    if
+    cand, xl_probs = spelling.candidates(original, vocab, dicts, max_dist=max_dist_levenshtein)
+    if len(cand) == 0:
+
+    scores = spelling.sorted_candidates(cand, predecessor, xl_probs,
+                                                     unigram, bigram, n_unigram)
+    if
 
 
 if __name__ == '__main__':

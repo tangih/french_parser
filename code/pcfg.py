@@ -171,7 +171,7 @@ def chomsky_normal_form(heads, rules, probs):
     # create a stack of unit rules id
     for i in range(len(rule_list)):
         head, rule, prob = rule_list[i]
-        if len(rule) == 1 and not (rule[0].upper() == rule[0]):
+        if len(rule) == 1 and rule[0].upper() == rule[0]:
             unit_rules_id.append(i)
 
     removed = []
@@ -180,7 +180,8 @@ def chomsky_normal_form(heads, rules, probs):
         i = unit_rules_id.pop()
         head, rule, prob = rule_list[i]
         rule_list[i] = None
-        removed.append((head, rule))
+        symbol = head.split('#')[0]
+        removed.append((symbol, rule))
         # add the removed unit rule to the list of unit rules and keep its index
         unit_rules.append((head, rule, prob))
         id_unit = len(unit_rules)-1
@@ -190,15 +191,14 @@ def chomsky_normal_form(heads, rules, probs):
             if rule_list[j] is None:
                 continue
             head_, rule_, prob_ = rule_list[j]
-            if head_ == rule[0]:
+            if head_.split('#')[0] == rule[0]:
                 if len(rule_) == 1:
-                    if (head, rule_) in removed:
+                    if (symbol, rule_) in removed:
                         continue
-                    else:
+                    elif rule_[0].upper() == rule_[0]:
                         unit_rules_id.append(len(rule_list) + len(new_rules))
                 new_rules.append((new_head, rule_, prob * prob_))
-        rule_list += new_rules
-
+        rule_list = rule_list + new_rules
     # remove from the rule list all the rules that have been set to None
     new_heads = []
     new_rule_list = []
@@ -209,4 +209,39 @@ def chomsky_normal_form(heads, rules, probs):
             if head not in new_heads:
                 new_heads.append(head)
 
-    return new_rule_list, unit_rules, new_heads
+    rule_list, heads = refined_rule_list(new_rule_list)
+
+    return rule_list, heads
+
+
+def refined_rule_list(rule_list):
+    new_rule_list = []
+    true_heads = []
+    for i in range(len(rule_list)):
+        head, _, _ = rule_list[i]
+        head = head.split('#')[0]
+        if head not in true_heads:
+            true_heads.append(head)
+
+    true_rule_list = {}
+    for i in range(len(rule_list)):
+        head, rule, prob = rule_list[i]
+        if len(head.split('#')) == 1:
+            new_rule_list.append((head, rule, prob))
+        else:
+            true_head = head.split('#')[0]
+            rule_str = true_head+'-'+'-'.join(rule)
+            if rule_str not in true_rule_list:
+                true_rule_list[rule_str] = []
+            probs = true_rule_list[rule_str]
+            probs.append(prob)
+            true_rule_list[rule_str] = probs
+
+    for rule_str in true_rule_list.keys():
+        probs = true_rule_list[rule_str]
+        total_prob = sum(probs)
+        tab = rule_str.split('-')
+        head = tab[0]
+        rule = tab[1:]
+        new_rule_list.append((head, rule, total_prob))
+    return new_rule_list, true_heads

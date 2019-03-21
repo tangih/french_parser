@@ -1,108 +1,198 @@
-MVA - Algorithms for Speech and NLP TD 2 (NLP)
+Probabilistic French parser
 ========================================
 
-## Contact Information
-For any question/request related to this course, please send an email to this address: mva.speech.language@gmail.com
+## Introduction
 
-## Assignment details
-**The goal of this assignment is to develop a basic probabilistic
-parser for French that is based on the CYK algorithm and the
-PCFG model and that is robust to unknown words.**
-
-The goal of this assignment is not to produce high-accuracy
-parsers. Its goal is rather for you to build a working statistical constituency parsing
-architecture based on the CYK algorithm, with a module for handling
-out-of-vocabulary words (OOVs) based on edit distance and word
-embedding similarity.
-
-More precisely, what you have to develop is:
-
-- a module to extract a PCFG from the training corpus provided (see
-below), made of:
-	- a probabilistic context-free grammar whose terminals are part-of-speech tags
-    - a probabilistic lexicon, i.e. triples of the form (token,
-      part-of-speech tag, probability) such that the sum of the
-      probabilities for all triples for a given token sums to 1.
-- an OOV module that assigns a (unique) part-of-speech to any token
-  not included in the lexicon extracted from the training corpus. The
-  underlying idea is to assign to an OOV the part-of-speech of a
-  "similar" word. This similarity will be computed as a combination of
-  formal similarity (to handle spelling errors) and embedding similarity (as
-  measured by cosine similarity, i.e. scalar product between
-  normalised vectors), to handle both spelling errors and genuine
-  unknown words; you must design a reasonable way to combine these two
-  similarities. For embedding similarity, you will use
-  [the Polyglot embedding lexicon for French](https://sites.google.com/site/rmyeid/projects/polyglot)
-  (see the
-  [tutorial on Polyglot embeddings](https://nbviewer.jupyter.org/gist/aboSamoor/6046170);
-  you can re-use this code)
-- a probabilistic implementation of the CYK algorithm that takes tokenised sentences as
-      an input. In other words, the input of the parser are files with
-      one sentence per line, and each sentence is formed of tokens
-      separated from one another by whitespace characters. The output
-      should be in the same bracketed format as the training
-      data. Regarding the probabilistic part, you will adapt the CYK
-      algorithm so that only the best (i.e. most probable) way to
-      rewrite an instanciated non-terminal symbol is retained. This
-      will give you a recursive, straigtforward way to then retrieve
-      the best (i.e. most probable) parse tree for the whole sentence.
-
-You must reimplement yourself the CYK algorithm and the Levenshtein
-distance computation.
-
-Use the SEQUOIA treebank v6.0 (file in the GitHub, bracketed format):
-
-- Split it into 3 parts (80% / 10% / 10%)
-- Use the 80% for training (extract CFG rules + learn CFG rule probabilities)
-- Use the first 10% for development purposes (whatever you want to use it)
-- Use the last 10% to evaluate your parser. To keep it simple,
-  you can evaluate your part-of-speech accuracy only, i.e. via the
-  percentage of tokens for which your parser choses the correct
-  part-of-speech. For your information, a standard
-  tool for constituency parse evaluation is [`evalb`](https://nlp.cs.nyu.edu/evalb/)
-
-IMPORTANT: You must ignore functional labels: whenever you find a hyphen in a non-terminal name, ignore
-it and everything that follows.
-For instance, let us consider the sentence:
-
-        ( (SENT (PP-MOD (P En) (NP (NC 1996))) (PONCT ,) (NP-SUJ (DET la) (NC municipalité)) (VN (V étudie)) (NP-OBJ (DET la) (NC possibilité) (PP (P d') (NP (DET une) (NC construction) (AP (ADJ neuve))))) (PONCT .)))
-
-You must interpret it as:
-		
-        ( (SENT (PP (P En) (NP (NC 1996))) (PONCT ,) (NP (DET la) (NC municipalité)) (VN (V étudie)) (NP (DET la) (NC possibilité) (PP (P d') (NP (DET une) (NC construction) (AP (ADJ neuve))))) (PONCT .)))
-Otherwise you might face sparsity issues.
+This repositery is an implementation of a probabilistic parser for French natural sentences. The parser is based on the SEQUOIA dataset [^f1]
 
 
-If you need more information about PCFGs and/or CYK algorithm, read [the most
-recent version of Jurafsky and Martin's chapter on Syntactic Parsing](https://web.stanford.edu/~jurafsky/slp3/12.pdf).
+### Usage
+
+## PCFG extraction
+
+### Dataset
+
+We extract a probabilistic context-free grammar by parsing the SEQUOIA treebank dataset~\cite{candito2012corpus}. The dataset is given as a bracketed set of 3099 lines corresponding to sentences and the associated grammatical structure of the sentence. The PCFG is created by counting the number of times the rules have been seen associated to a certain head. Overall, we find 2929 different rules in the dataset.
+
+\subsection{Chomsky normal form}
+
+In order to apply the CYK algorithm for probabilistic parsing, we need to convert our PCFG into Chomsky normal form \cite{chomsky1959certain}, that is to say rules have to be of the form
+$$
+\begin{array}{ll}
+     A \to BC & \text{or}\\
+    A \to a & \text{or}\\
+    S \to \epsilon
+    \end{array}
+$$
+
+where $$$A$$$, $B$ and $C$ are non-terminal symbols, and $a$ is a terminal symbol. To convert our PCFG into normal form, we have to apply a certain set of rules~\cite{lange2009cnf}:
+ - START: eliminate start symbols from right hand side
+ 
+ - TERM: eliminate rules with non-solitary terminals
+ 
+ - BIN: replace each rule
+$$
+ A \rightarrow X_1 ... X_n
+ $$
+with associated probability $p$ by a set of rules
+$$
+ \begin{array}{ll}
+   A\rightarrow X_1A_1 & \text{with associated probability $p$}\\
+A_1\rightarrow X_2A_2 & \text{with associated probability 1}\\
+...\\
+A_{n-2}\rightarrow X_{n-1}X_n & \text{with associated probability 1}\\\end{array}
+    $$
+    
+ - UNIT: eliminate unit rules. A unit rule is a rule of the form 
+$$
+A\rightarrow B
+$$
+with associated probability $p$, where $A$, $B$ are non-terminal symbols. To remove it, for each rule 
+$$
+B\rightarrow X_1 ... X_n
+$$
+where $X_1 ... X_n$ is a string of nonterminals and terminals with associated probability $p'$, add rule 
+$$
+A\rightarrow X_1 ... X_n
+$$
+with associated probability $pp'$.
+Notice this rule is problematic, since even though the language generated by the PCFG is still the same after applying this rule, when applying the algorithm we will not be able to reconstruct the intermediate rules. The way to overcome this problem is by remembering the rules $A\to A_1\to ... \to A_m \to X_1 ... X_n$ we erase: when generating the parse, we can either choose the rule with maximal probability, or randomly sample one of these rules with the distribution associated to the probabilities of these sequences of rules.
+\end{enumerate}
 
 
-## Assignment deliverable
-Your assignment will be sent in the form of a folder **named according to the  pattern `MVA_TD2_LASTNAME_Firstname`** that
-contains two elements:
-1. a report (**at least 1 full page, at most 2 full pages, font size 11pt**, reasonable margins, PDF format, in English or French) **named `MVA_TD2_LASTNAME_Firstname_report.pdf`** containing 2 sections:
-     - a first section describing your work, how things work, and the
-       rationale behind the choices you made,
-     - a second section with a brief error analysis: what seems to work, what does not? Any idea why? What would you
-       suggest to improve your system?
-2. a folder named `system` containing your system. This folder will
-   contain three files:
-     - a shell script named `run.sh` that reads tokenised text on the standard input (one sentence per line,
-       exactly one whitespace between each token, as explained above)
-     - a `README` file describing other options or argument to
-     `run.sh` (or explicitly stating the absence thereof)
-	 - the output of your parser on the evaluation dataset (the last
-       10% of the provided treebank). Of course, the input to your
-       parser will be the evaluation dataset from which you will have
-       first removed all annotations, only retaining the raw
-       tokens. This file will be named `evaluation_data.parser_output`
 
-## Handing the assignment
-Send your tgz archive to mva.speech.language@gmail.com before the  class on Monday, March 18th. You must follow the following naming conventions:
-1. Start the title of your email with "TD2".
-2. A tgz compressed version of your `MVA_TD2_LASTNAME_Firstname`
-   folder. The tgz archive must be named according to the following
-   pattern: **`MVA_TD2_LASTNAME_Firstname.tgz`**
+## OOV module
+
+We want our parser to be able to handle unknown words, which means we need to identify the part-of-speech tags associated to words we did not encountered in the dataset. We can identify two causes for encountering an unknown word: the first is we genuinely never encoutered the word, and the second is that there is a spelling mistake in the input word. For these reasons, we are going to build two modules: the first one is basically a spell correcter, that returns a list of most probable corrections for an input word, and the second one is a similarity measure between words.
+
+### Spell checker
+
+To compute candidates for spelling correction, we are going to search for words that are at distance at most 2 from the input word, where the distance between two words is given by the minimal number of transformations to go from one to the other. The allowed transformations are insertion of a character, deletion of a caracter, and substitution of two characters. This distance, called the Levenshtein distance~\cite{levenshtein1966binary}, can be easily computed by a dynamic programming algorithm. If we denote by $\text{lev}_{a, b}(i, j)$ the number of operations necessary to go from the $i$-prefix of $a$ to the $j$-prefix of $b$, we have:
+$$
+\text{lev}_{a, b}(i, j) = 
+    \left\{
+        \begin{array}{ll}
+            \max(i, j) &  \text{if } \min(i, j) = 0\\
+            \min \left\{
+                \begin{array}{l}
+                    \text{lev}_{a, b}(i-1, j) + 1\\
+                    \text{lev}_{a, b}(i, j-1) + 1\\
+                    \text{lev}_{a, b}(i-1, j-1) + 1_{(a_i \neq b_i)}
+                \end{array}
+                \right.
+        \end{array}
+    \right.
+$$
+
+In addition to this, we are going to compute the probability of a given candidate word to be mistakenly spelled as the input word. To do so, we are going to use the spelling noisy model in \cite{kernighan1990spelling}. This paper gives tables with frequencies of a given insertion/deletion/substitution error to happen. This allows us to compute the probability associated to a candidate. Given an input word $t$ and a candidate $c$, Bayes rule yields:
+$$
+  P(c|t) = \underbrace{P(t|c)}_{\text{mistake model}}\times\underbrace{P(c)}_{\text{language model}}
+$$
+
+The mistake model in the previous equation corresponds to a certain spelling error happening, and can easily be computed by adapting the function used for computing the Levenshtein distance, since the computation of the minimum corresponds to identifying one of the three allowed transformations, and thus the probability associated to this transformation can be used. If we denote $P_{a, b}(i, j)$ the probability of mistakenly typing the $j$-prefix of $b$ instead of the $i$-prefix of $a$, and we denote $P_{del}(i, j)$, $P_{add}(i, j)$ and $P_{sub}(i, j)$ the probabilities of respectively deletion, addition and substitution of $a_i$ instead of $b_j$, and name case 1, 2, 3 the cases corresponding to the min in the definition of the Levenshtein distance, we have
+
+$$
+P_{a, b}(i, j) = 
+    \left\{
+        \begin{array}{ll}
+            P_{a, b}(i-1, 0) P_{del}(i, 0) &\text{if j = 0}\\
+            P_{a, b}(0, j-1)  P_{add}(0, j) &\text{if i = 0}\\
+
+            \min \left\{
+                \begin{array}{ll}
+                    P_{a, b}(i-1, j) P_{del}(i, j) & \text{in case 1}\\
+                    P_{a, b}(i, j-1) P_{add}(i, j) & \text{in case 2}\\
+                    P_{a, b}(i-1, j-1) P_{sub}(i, j)^{1_{(a_i \neq b_i)}} & \text{in case 3}
+                \end{array}
+                \right.
+        \end{array}
+    \right.
+$$
+
+This allows us to implement a dynamic programming algorithm that computes the levenshtein distance between two words, and the probability associated to this mistake.
+
+We know need to implement a language model. This language model corresponds to the probability to inserting the candidate given the context of the sentence. We could use 1-gram or 2-gram probabilities $P_{uni}$ and $P_{bi}$, but we are going to use an intermediate interpolated probability
 
 
-# french_parser
+$$
+\begin{array}{c}
+P_{li}(w_k|w_{k-1}) = \lambda P_{uni}(w_k) + (1-\lambda)P_{mle}(w_k|w_{k-1}) \\
+\text{where }P_{mle}(w_k|w_{k-1}) = \frac{\#(w_k|w_{k-1})}{\#(w_{k-1})}
+\end{array}
+$$
+
+We also use add-1 smoothing to allow for unseen sequences. Recombining the two models, we can compute a list of candidates, by computing the Levenshtein distance between all words in our lexicon and the input word, and only keeping the words at a distance of at most 1 (or 2).
+
+### Polyglot similarity
+
+The limit of the previous approach is that our list may be empty, or the obtained candidates may be highly improbable. In that case, it is reasonable to think that the input word is actually not a mistake, but is absent from our lexicon. In that case, we are going to use word embedding to compute a similarity between words. We are going to use the polyglot dataset \cite{al2013polyglot}. Without going into too much detail, this is a light embedding that allows to encode both syntactic and semantic information about the words, as illustrated figure \ref{fig:features}.
+
+
+  ![](polyglot.png)
+  ![](polyglot_semantic.png)
+
+
+
+In the case where the word is not obtained by simple spelling correction, we get its PoS by voting over its $k$ nearest neighbours in the lexicon, according to $L_2$ distance between word embeddings.
+
+### PoS attribution
+
+
+The spell checker gives us a set of candidates $c_{i, \text{spell}}$ and associated weights $w_{i, \text{spell}}$. Similarly, the words embedding gives us a set of candidates $c_{i, \text{embed}}$ with associated weights $w_{i, \text{embed}}$. The probability of the event $\langle c_i, t \rangle$ the candidate $c_i$ and $t$ share the same PoS is defined as
+
+$$
+\begin{split}
+ \mathbb{P}(\langle c_{i, \text{spell}}, t \rangle) &= \alpha \cdot \frac{w_{i, \text{spell}}}{\sum_{j, \text{spell}}w_{j, \text{spell}}}\\
+ \mathbb{P}(\langle c_{i, \text{embed}}, t \rangle) &= (1 - \alpha) \cdot \frac{w_{i, \text{embed}}}{\sum_{j, \text{embed}}w_{j, \text{embed}}}
+\end{split}
+$$
+
+with $0 \leq \alpha \leq 1$. Finally, the probability of $t$ having the PoS $p$ is given by
+
+$$
+ \begin{split}
+ \mathbb{P}(p|t) &= \sum_{i, \text{candidates}}\mathbb{P}(p|c_i)\mathbb{P}(\langle c_i, t \rangle)\\
+ &= \sum_{i, \text{candidates}}\mathbb{P}(c_i|p)\mathbb{P}(p)\mathbb{P}(\langle c_i, t \rangle)
+ \end{split}
+$$
+
+## Parsing
+
+### Probabilistic CYK algorithm
+
+The Cocke-Younger-Kasami (CYK) algorithm \cite{cocke1970programming, younger1967recognition, kasami1966efficient} is a parsing algorithm for context-free grammars. For a given sentence and a CFG in Chomsky normal form, the algorithm returns whether or not the input sentence can be generated from the CFG. We implement a probabilistic version of this algorithm, giving the most probable parse of the input sentence, if it exists. The pseudocode of the algorithm can be found in algorithm \ref{alg:cyk}.
+
+\begin{algorithm}
+\caption{Probabilistic CYK}\label{alg:cyk}
+\hspace*{\algorithmicindent} \textbf{Input: } \\
+\hspace*{\algorithmicindent} a sentence $S$ of $n$ words $w_1 ... w_n$\\
+\hspace*{\algorithmicindent} a grammar of $r$ nonterminal symbols $R_1, ..., R_r$, with start symbol $R_1$.
+\begin{algorithmic}[1]
+\State let $P[n,n,r]$ be an array of real numbers. Initialize all elements of $P$ to zero.
+\State let \texttt{back}$[n,n,r]$ be an array of backpointing triples
+\For {$s=1$ to $n$}
+\For {each unit production $R_v \to a_s$}
+\State set $P[1,s,v] = \mathbb{P}(R_v \to a_s)$
+\EndFor
+\EndFor
+\For {$l=2$ to $n$}
+\For {$s = 1$ to $n-l+1$}
+\For {$p=1$ to $l-1$}
+\For {each production $R_a \to R_b R_c$}
+\State $p_s = \mathbb{P}(R_a\to R_b R_c)P[p,s,b] P[l-p,s+p,c]$
+\If {$P[p,s,b] > 0$ and $P[l-p,s+p,c] > 0$ and $P[l,s,a] < p_s$ }
+\State $P[l,s,a] = p_s$
+\State \texttt{back}$[l,s,a] = (p,b,c)$
+\EndIf
+\EndFor
+\EndFor
+\EndFor
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+The parse can then be inferred using the array \texttt{back}. The worst-case complexity of the algorithm is $O(n^3 \cdot |G|)$.
+
+## Bibliography
+
+[^f1]: footnote

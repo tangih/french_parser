@@ -321,4 +321,4 @@ if __name__ == '__main__':
     vocab = get_vocab(words)
     unigram, n_unigram = unigram(sentences)
     bigram, n_bigram = bigram(vocab, sentences)
-    print(levenshtein_dist('actress', 'across', dele, add, sub))
+    # print(levenshtein_dist('actress', 'across', dele, add, sub))
