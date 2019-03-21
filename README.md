@@ -46,7 +46,7 @@ In addition to this, we are going to compute the probability of a given candidat
 
 The mistake model in the previous equation corresponds to a certain spelling error happening, and can easily be computed by adapting the function used for computing the Levenshtein distance, since the computation of the minimum corresponds to identifying one of the three allowed transformations, and thus the probability associated to this transformation can be used. If we denote P(i, j) the probability of mistakenly typing the j-prefix of b instead of the i-prefix of a, and we denote Pdel(i, j), Padd(i, j) and Psub(i, j) the probabilities of respectively deletion, addition and substitution, and name case 1, 2, 3 the cases corresponding to the min in the definition of the Levenshtein distance, we have
 
-![](images/eq_probs.png)
+![](images/eq_prob.png)
 
 This allows us to implement a dynamic programming algorithm that computes the levenshtein distance between two words, and the probability associated to this mistake.
 
