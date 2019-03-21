@@ -5,8 +5,6 @@ Probabilistic French parser
 
 This repositery is an implementation of a probabilistic parser for French natural sentences. The parser is based on the SEQUOIA dataset [^f1]
 
-![](https://latex.codecogs.com/gif.latex?O_t=\text { Onset event at time bin } t)
-
 ### Usage
 
 ## PCFG extraction
@@ -128,9 +126,9 @@ We also use add-1 smoothing to allow for unseen sequences. Recombining the two m
 
 The limit of the previous approach is that our list may be empty, or the obtained candidates may be highly improbable. In that case, it is reasonable to think that the input word is actually not a mistake, but is absent from our lexicon. In that case, we are going to use word embedding to compute a similarity between words. We are going to use the polyglot dataset \cite{al2013polyglot}. Without going into too much detail, this is a light embedding that allows to encode both syntactic and semantic information about the words, as illustrated figure \ref{fig:features}.
 
-
-  ![](polyglot.png)
-  ![](polyglot_semantic.png)
+| syntactic (global level) clustering |  semantic (local level) clustering |
+|-------------------------------------|------------------------------------|
+|![](images/polyglot.png) | ![](images/polyglot_semantic.png) |
 
 
 
@@ -163,34 +161,7 @@ $$
 
 The Cocke-Younger-Kasami (CYK) algorithm \cite{cocke1970programming, younger1967recognition, kasami1966efficient} is a parsing algorithm for context-free grammars. For a given sentence and a CFG in Chomsky normal form, the algorithm returns whether or not the input sentence can be generated from the CFG. We implement a probabilistic version of this algorithm, giving the most probable parse of the input sentence, if it exists. The pseudocode of the algorithm can be found in algorithm \ref{alg:cyk}.
 
-\begin{algorithm}
-\caption{Probabilistic CYK}\label{alg:cyk}
-\hspace*{\algorithmicindent} \textbf{Input: } \\
-\hspace*{\algorithmicindent} a sentence $S$ of $n$ words $w_1 ... w_n$\\
-\hspace*{\algorithmicindent} a grammar of $r$ nonterminal symbols $R_1, ..., R_r$, with start symbol $R_1$.
-\begin{algorithmic}[1]
-\State let $P[n,n,r]$ be an array of real numbers. Initialize all elements of $P$ to zero.
-\State let \texttt{back}$[n,n,r]$ be an array of backpointing triples
-\For {$s=1$ to $n$}
-\For {each unit production $R_v \to a_s$}
-\State set $P[1,s,v] = \mathbb{P}(R_v \to a_s)$
-\EndFor
-\EndFor
-\For {$l=2$ to $n$}
-\For {$s = 1$ to $n-l+1$}
-\For {$p=1$ to $l-1$}
-\For {each production $R_a \to R_b R_c$}
-\State $p_s = \mathbb{P}(R_a\to R_b R_c)P[p,s,b] P[l-p,s+p,c]$
-\If {$P[p,s,b] > 0$ and $P[l-p,s+p,c] > 0$ and $P[l,s,a] < p_s$ }
-\State $P[l,s,a] = p_s$
-\State \texttt{back}$[l,s,a] = (p,b,c)$
-\EndIf
-\EndFor
-\EndFor
-\EndFor
-\EndFor
-\end{algorithmic}
-\end{algorithm}
+![](images/algo.png)
 
 The parse can then be inferred using the array \texttt{back}. The worst-case complexity of the algorithm is $O(n^3 \cdot |G|)$.
 
