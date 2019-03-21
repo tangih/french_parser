@@ -24,14 +24,9 @@ In order to apply the CYK algorithm for probabilistic parsing, we need to conver
  - BIN: replace each rule
      A &rarr; X_1 ... X_n
      with associated probability p by a set of rules
-	- A&rarr; X_1 A_1  with associated probability p
-    - A_1&rarr; X_2A_2 with associated probability 1
-    - ...
-    - A_{n-2}\rightarrow X_{n-1}X_n & \text{with associated probability 1}\\\end{array}
-    $$
-    ![equation](http://www.sciweavers.org/tex2img.php?eq=1%2Bsin%28mc%5E2%29&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=)
-    
- - UNIT: eliminate unit rules. A unit rule is a rule of the form 
+	![](http://bit.ly/2TpgWQ6)
+
+ - UNIT: eliminate unit rules. A unit rule is a rule of the form
 $$
 A\rightarrow B
 $$
@@ -56,21 +51,9 @@ We want our parser to be able to handle unknown words, which means we need to id
 ### Spell checker
 
 To compute candidates for spelling correction, we are going to search for words that are at distance at most 2 from the input word, where the distance between two words is given by the minimal number of transformations to go from one to the other. The allowed transformations are insertion of a character, deletion of a caracter, and substitution of two characters. This distance, called the Levenshtein distance~\cite{levenshtein1966binary}, can be easily computed by a dynamic programming algorithm. If we denote by $\text{lev}_{a, b}(i, j)$ the number of operations necessary to go from the $i$-prefix of $a$ to the $j$-prefix of $b$, we have:
-$$
-\text{lev}_{a, b}(i, j) = 
-    \left\{
-        \begin{array}{ll}
-            \max(i, j) &  \text{if } \min(i, j) = 0\\
-            \min \left\{
-                \begin{array}{l}
-                    \text{lev}_{a, b}(i-1, j) + 1\\
-                    \text{lev}_{a, b}(i, j-1) + 1\\
-                    \text{lev}_{a, b}(i-1, j-1) + 1_{(a_i \neq b_i)}
-                \end{array}
-                \right.
-        \end{array}
-    \right.
-$$
+
+![](http://www.sciweavers.org/tex2img.php?eq=%5Ctext%7Blev%7D_%7Ba%2C%20b%7D%28i%2C%20j%29%20%3D%20%0A%20%20%20%20%5Cleft%5C%7B%0A%20%20%20%20%20%20%20%20%5Cbegin%7Barray%7D%7Bll%7D%0A%20%20%20%20%20%20%20%20%20%20%20%20%5Cmax%28i%2C%20j%29%20%26%20%20%5Ctext%7Bif%20%7D%20%5Cmin%28i%2C%20j%29%20%3D%200%5C%5C%0A%20%20%20%20%20%20%20%20%20%20%20%20%5Cmin%20%5Cleft%5C%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%5Cbegin%7Barray%7D%7Bl%7D%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%5Ctext%7Blev%7D_%7Ba%2C%20b%7D%28i-1%2C%20j%29%20%2B%201%5C%5C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%5Ctext%7Blev%7D_%7Ba%2C%20b%7D%28i%2C%20j-1%29%20%2B%201%5C%5C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%5Ctext%7Blev%7D_%7Ba%2C%20b%7D%28i-1%2C%20j-1%29%20%2B%201_%7B%28a_i%20%5Cneq%20b_i%29%7D%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%5Cend%7Barray%7D%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%5Cright.%0A%20%20%20%20%20%20%20%20%5Cend%7Barray%7D%0A%20%20%20%20%5Cright.&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=0" align="center" border="0" alt="\text{lev}_{a, b}(i, j)
+
 
 In addition to this, we are going to compute the probability of a given candidate word to be mistakenly spelled as the input word. To do so, we are going to use the spelling noisy model in \cite{kernighan1990spelling}. This paper gives tables with frequencies of a given insertion/deletion/substitution error to happen. This allows us to compute the probability associated to a candidate. Given an input word $t$ and a candidate $c$, Bayes rule yields:
 $$
