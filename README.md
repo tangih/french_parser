@@ -3,7 +3,7 @@ Probabilistic French parser
 
 ## Introduction
 
-This repositery is an implementation of a probabilistic parser for French natural sentences. The parser is based on the SEQUOIA dataset [^f1]
+This repositery is an implementation of a probabilistic parser for French natural sentences. The parser is based on the SEQUOIA dataset.
 
 ### Usage
 
@@ -11,11 +11,11 @@ This repositery is an implementation of a probabilistic parser for French natura
 
 ### Dataset
 
-We extract a probabilistic context-free grammar by parsing the SEQUOIA treebank dataset~\cite{candito2012corpus}. The dataset is given as a bracketed set of 3099 lines corresponding to sentences and the associated grammatical structure of the sentence. The PCFG is created by counting the number of times the rules have been seen associated to a certain head. Overall, we find 2929 different rules in the dataset.
+We extract a probabilistic context-free grammar by parsing the [SEQUOIA treebank dataset](https://www.rocq.inria.fr/alpage-wiki/tiki-index.php?page=CorpusSequoia). The dataset is given as a bracketed set of 3099 lines corresponding to sentences and the associated grammatical structure of the sentence. The PCFG is created by counting the number of times the rules have been seen associated to a certain head. Overall, we find 2929 different rules in the dataset.
 
 ### Chomsky normal form
 
-In order to apply the CYK algorithm for probabilistic parsing, we need to convert our PCFG into Chomsky normal form, that is to say rules have to be of the form A &rarr; BC or  A &rarr; a where a is a terminal symbol or S &rarr; e where e is the empty word. To convert our PCFG into normal form, we have to apply a certain set of rules~\cite{lange2009cnf}:
+In order to apply the CYK algorithm for probabilistic parsing, we need to convert our PCFG into Chomsky normal form, that is to say rules have to be of the form A &rarr; BC or  A &rarr; a where a is a terminal symbol or S &rarr; e where e is the empty word. To convert our PCFG into normal form, we have to apply a certain set of rules:
 
  - START: eliminate start symbols from right hand side
  
@@ -36,17 +36,15 @@ We want our parser to be able to handle unknown words, which means we need to id
 
 ### Spell checker
 
-To compute candidates for spelling correction, we are going to search for words that are at distance at most 2 from the input word, where the distance between two words is given by the minimal number of transformations to go from one to the other. The allowed transformations are insertion of a character, deletion of a caracter, and substitution of two characters. This distance, called the Levenshtein distance~\cite{levenshtein1966binary}, can be easily computed by a dynamic programming algorithm. If we denote by $\text{lev}_{a, b}(i, j)$ the number of operations necessary to go from the $i$-prefix of $a$ to the $j$-prefix of $b$, we have:
+To compute candidates for spelling correction, we are going to search for words that are at distance at most 2 from the input word, where the distance between two words is given by the minimal number of transformations to go from one to the other. The allowed transformations are insertion of a character, deletion of a caracter, and substitution of two characters. This distance, called the Levenshtein distance, can be easily computed by a dynamic programming algorithm. If we denote by lev(i, j) the number of operations necessary to go from the i-prefix of a to the j-prefix of b, we have:
 
 ![](images/eq_lev.png)
 
-
-In addition to this, we are going to compute the probability of a given candidate word to be mistakenly spelled as the input word. To do so, we are going to use the spelling noisy model in \cite{kernighan1990spelling}. This paper gives tables with frequencies of a given insertion/deletion/substitution error to happen. This allows us to compute the probability associated to a candidate. Given an input word $t$ and a candidate $c$, Bayes rule yields:
+In addition to this, we are going to compute the probability of a given candidate word to be mistakenly spelled as the input word. To do so, we are going to use the spelling noisy model in the article [A Spelling Correction Program Based on a Noisy Channel Model](http://www.aclweb.org/anthology/C90-2036). This paper gives tables with frequencies of a given insertion/deletion/substitution error to happen. This allows us to compute the probability associated to a candidate. Given an input word t and a candidate c, Bayes rule yields:
 
 ![](images/eq_model.png)
 
-The mistake model in the previous equation corresponds to a certain spelling error happening, and can easily be computed by adapting the function used for computing the Levenshtein distance, since the computation of the minimum corresponds to identifying one of the three allowed transformations, and thus the probability associated to this transformation can be used. If we denote $P_{a, b}(i, j)$ the probability of mistakenly typing the $j$-prefix of $b$ instead of the $i$-prefix of $a$, and we denote $P_{del}(i, j)$, $P_{add}(i, j)$ and $P_{sub}(i, j)$ the probabilities of respectively deletion, addition and substitution of $a_i$ instead of $b_j$, and name case 1, 2, 3 the cases corresponding to the min in the definition of the Levenshtein distance, we have
-
+The mistake model in the previous equation corresponds to a certain spelling error happening, and can easily be computed by adapting the function used for computing the Levenshtein distance, since the computation of the minimum corresponds to identifying one of the three allowed transformations, and thus the probability associated to this transformation can be used. If we denote P(i, j) the probability of mistakenly typing the j-prefix of b instead of the i-prefix of a, and we denote Pdel(i, j), Padd(i, j) and Psub(i, j) the probabilities of respectively deletion, addition and substitution, and name case 1, 2, 3 the cases corresponding to the min in the definition of the Levenshtein distance, we have
 
 ![](images/eq_probs.png)
 
@@ -61,7 +59,7 @@ We also use add-1 smoothing to allow for unseen sequences. Recombining the two m
 
 ### Polyglot similarity
 
-The limit of the previous approach is that our list may be empty, or the obtained candidates may be highly improbable. In that case, it is reasonable to think that the input word is actually not a mistake, but is absent from our lexicon. In that case, we are going to use word embedding to compute a similarity between words. We are going to use the polyglot dataset \cite{al2013polyglot}. Without going into too much detail, this is a light embedding that allows to encode both syntactic and semantic information about the words, as illustrated figure \ref{fig:features}.
+The limit of the previous approach is that our list may be empty, or the obtained candidates may be highly improbable. In that case, it is reasonable to think that the input word is actually not a mistake, but is absent from our lexicon. In that case, we are going to use word embedding to compute a similarity between words. We are going to use the [Polyglot dataset](https://sites.google.com/site/rmyeid/projects/polyglot). Without going into too much detail, this is a light embedding that allows to encode both syntactic and semantic information about the words, as illustrated figure on the figure below.
 
 | syntactic (global level) clustering |  semantic (local level) clustering |
 |-------------------------------------|------------------------------------|
@@ -69,16 +67,16 @@ The limit of the previous approach is that our list may be empty, or the obtaine
 
 
 
-In the case where the word is not obtained by simple spelling correction, we get its PoS by voting over its $k$ nearest neighbours in the lexicon, according to $L_2$ distance between word embeddings.
+In the case where the word is not obtained by simple spelling correction, we get its PoS by voting over its k nearest neighbours in the lexicon, according to L2 distance between word embeddings.
 
 ### PoS attribution
 
 
-The spell checker gives us a set of candidates $c_{i, \text{spell}}$ and associated weights $w_{i, \text{spell}}$. Similarly, the words embedding gives us a set of candidates $c_{i, \text{embed}}$ with associated weights $w_{i, \text{embed}}$. The probability of the event $\langle c_i, t \rangle$ the candidate $c_i$ and $t$ share the same PoS is defined as
+The spell checker gives us a set of candidates words and associated weights. Similarly, the words embedding gives us a set of candidates. The probability of a candidate c and the original word t sharing the same PoS is defined as
 
 ![](images/eq_pli.png)
 
-with $0 \leq \alpha \leq 1$. Finally, the probability of $t$ having the PoS $p$ is given by
+Finally, the probability of t having the PoS p is given by
 
 ![](images/eq_pos.png)
 
@@ -86,12 +84,8 @@ with $0 \leq \alpha \leq 1$. Finally, the probability of $t$ having the PoS $p$ 
 
 ### Probabilistic CYK algorithm
 
-The Cocke-Younger-Kasami (CYK) algorithm \cite{cocke1970programming, younger1967recognition, kasami1966efficient} is a parsing algorithm for context-free grammars. For a given sentence and a CFG in Chomsky normal form, the algorithm returns whether or not the input sentence can be generated from the CFG. We implement a probabilistic version of this algorithm, giving the most probable parse of the input sentence, if it exists. The pseudocode of the algorithm can be found in algorithm \ref{alg:cyk}.
+The Cocke-Younger-Kasami (CYK) algorithm is a parsing algorithm for context-free grammars. For a given sentence and a CFG in Chomsky normal form, the algorithm returns whether or not the input sentence can be generated from the CFG. We implement a probabilistic version of this algorithm, giving the most probable parse of the input sentence, if it exists. The pseudocode of the algorithm is the following
 
 ![](images/algo.png)
 
-The parse can then be inferred using the array \texttt{back}. The worst-case complexity of the algorithm is $O(n^3 \cdot |G|)$.
-
-## Bibliography
-
-[^f1]: footnote
+The parse can then be inferred using the array `back`.
