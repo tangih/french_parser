@@ -5,7 +5,7 @@ Probabilistic French parser
 
 This repositery is an implementation of a probabilistic parser for French natural sentences. The parser is based on the SEQUOIA dataset [^f1]
 
-![](https://latex.codecogs.com/gif.latex?O_t=\text { Onset event at time bin } t ")
+![](https://latex.codecogs.com/gif.latex?O_t=\text { Onset event at time bin } t)
 
 ### Usage
 
