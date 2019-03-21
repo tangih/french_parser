@@ -5,9 +5,7 @@ Probabilistic French parser
 
 This repositery is an implementation of a probabilistic parser for French natural sentences. The parser is based on the SEQUOIA dataset [^f1]
 
-- lalala <img src="https://latex.codecogs.com/gif.latex?O_t=\text { Onset event at time bin } t " /> lalala
-- <img src="https://latex.codecogs.com/gif.latex?s=\text { sensor reading }  " /> 
-- <img src="https://latex.codecogs.com/gif.latex?P(s | O_t )=\text { Probability of a sensor reading value when sleep onset is observed at a time bin } t " />
+![](https://latex.codecogs.com/gif.latex?O_t=\text { Onset event at time bin } t ")
 
 ### Usage
 
@@ -17,7 +15,7 @@ This repositery is an implementation of a probabilistic parser for French natura
 
 We extract a probabilistic context-free grammar by parsing the SEQUOIA treebank dataset~\cite{candito2012corpus}. The dataset is given as a bracketed set of 3099 lines corresponding to sentences and the associated grammatical structure of the sentence. The PCFG is created by counting the number of times the rules have been seen associated to a certain head. Overall, we find 2929 different rules in the dataset.
 
-\subsection{Chomsky normal form}
+### Chomsky normal form
 
 In order to apply the CYK algorithm for probabilistic parsing, we need to convert our PCFG into Chomsky normal form \cite{chomsky1959certain}, that is to say rules have to be of the form
 $$
