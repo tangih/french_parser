@@ -15,32 +15,21 @@ We extract a probabilistic context-free grammar by parsing the SEQUOIA treebank 
 
 ### Chomsky normal form
 
-In order to apply the CYK algorithm for probabilistic parsing, we need to convert our PCFG into Chomsky normal form \cite{chomsky1959certain}, that is to say rules have to be of the form
-$$
-\begin{array}{ll}
-     A \to BC & \text{or}\\
-    A \to a & \text{or}\\
-    S \to \epsilon
-    \end{array}
-$$
+In order to apply the CYK algorithm for probabilistic parsing, we need to convert our PCFG into Chomsky normal form \cite{chomsky1959certain}, that is to say rules have to be of the form A &rarr; BC or  A &rarr; a where a is a terminal symbol or S &rarr; e where e is the empty word. To convert our PCFG into normal form, we have to apply a certain set of rules~\cite{lange2009cnf}:
 
-where $$$A$$$, $B$ and $C$ are non-terminal symbols, and $a$ is a terminal symbol. To convert our PCFG into normal form, we have to apply a certain set of rules~\cite{lange2009cnf}:
  - START: eliminate start symbols from right hand side
  
  - TERM: eliminate rules with non-solitary terminals
  
  - BIN: replace each rule
-$$
- A \rightarrow X_1 ... X_n
- $$
-with associated probability $p$ by a set of rules
-$$
- \begin{array}{ll}
-   A\rightarrow X_1A_1 & \text{with associated probability $p$}\\
-A_1\rightarrow X_2A_2 & \text{with associated probability 1}\\
-...\\
-A_{n-2}\rightarrow X_{n-1}X_n & \text{with associated probability 1}\\\end{array}
+     A &rarr; X_1 ... X_n
+     with associated probability p by a set of rules
+	- A&rarr; X_1 A_1  with associated probability p
+    - A_1&rarr; X_2A_2 with associated probability 1
+    - ...
+    - A_{n-2}\rightarrow X_{n-1}X_n & \text{with associated probability 1}\\\end{array}
     $$
+    ![equation](http://www.sciweavers.org/tex2img.php?eq=1%2Bsin%28mc%5E2%29&bc=White&fc=Black&im=jpg&fs=12&ff=arev&edit=)
     
  - UNIT: eliminate unit rules. A unit rule is a rule of the form 
 $$
